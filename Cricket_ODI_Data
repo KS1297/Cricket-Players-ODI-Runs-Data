@@ -1,0 +1,100 @@
+#cell1
+from bs4 import BeautifulSoup
+import requests
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
+from lxml import etree
+
+import time
+
+#cell2
+#put your chormedriver path here
+driver = webdriver.Chrome("C:\\Users\keyur_shrimali\Downloads\chromedriver.exe")
+
+countries = []
+player_dict = {}
+
+url = "http://cricket-stats.net/#"
+driver.get(url)
+time.sleep(3)
+
+ul = driver.find_elements_by_xpath('//*[@id="mbwnav"]/li[2]/ul/li')
+
+for i in range(1,len(ul)+1):
+    a = driver.find_element_by_xpath('//*[@id="mbwnav"]/li[2]/ul/li['+str(i)+']/a')
+    links = a.get_attribute('href')
+    countries.append(links)
+print(countries)
+time.sleep(2)
+
+#cell3
+pl = []
+link = []
+
+for i in countries:
+    driver.get(i)
+    time.sleep(3)
+    r = driver.page_source
+    soup = BeautifulSoup(r, 'html.parser')
+    players = soup.find_all('td', {'class':'plainLeft'})
+    #print(players)
+
+    for itm in players:
+        #anc = itm.find_all('a', href = True)
+        link.append([a.get('href') for a in itm.find_all('a', href=True)])
+        #time.sleep(2)
+
+    pl = [item for sublist in link for item in sublist]
+    pl = ["http://cricket-stats.net"+i for i in pl]
+
+#cell4
+for i in pl:
+    driver.get(i)
+    name = ""
+    time.sleep(3)
+    name = driver.find_element_by_xpath('/html/body/div/div[4]/span').text
+    print("\n")
+
+    driver.find_element_by_xpath('/html/body/div/table/tbody/tr[1]/td[1]/ul[2]/li[1]/a').click()
+    time.sleep(3)
+
+    year = []
+    runs = []
+    d = True
+    count = 2
+
+    try:
+        while d:
+            y=driver.find_element_by_xpath('/html/body/div/table/tbody/tr[2]/td/div/table[7]/tbody/tr['+str(count)+']/td[1]').text
+            year.append(y)
+            r = driver.find_element_by_xpath('/html/body/div/table/tbody/tr[2]/td/div/table[7]/tbody/tr['+str(count)+']/td[5]').text
+            runs.append(r)
+            count += 1
+    except NoSuchElementException:
+        pass
+    except:
+        print("Data Not available !")
+
+    player_dict[name] = {}
+    player_dict[name]["year"] = year
+    player_dict[name]["runs"] = runs
+    total = sum(int(x) for x in runs if x.isdigit())
+    player_dict[name]["total"] = total
+    print(player_dict[name])
+
+print(player_dict)
+
+
+#final cell
+#run this cell at last once your dictionary have some data to test(or after all data is collected)
+inp1 = input("Enter name of the player(same as mentioned in dict) : ")
+inp2 = input("Enter year from which you want cumulative sum of runs : ")
+print("\nCumulative sum of runs from "+ inp2 +" for "+inp1+" is : ")
+
+index = 0
+for n,value1 in player_dict.items():
+    if n==inp1:
+        for i,j in enumerate(value1["year"]):
+            if j==inp2:
+                index=i
+        print(sum(int(x) for x in value1["runs"][index:] if x.isdigit()))
